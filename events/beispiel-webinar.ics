@@ -1,0 +1,26 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Solakon//Add to Calendar//DE
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:beispiel-webinar@cal.solakon.de
+DTSTAMP:20261012T203023Z
+SEQUENCE:1
+DTSTART:20261119T170000Z
+DTEND:20261119T180000Z
+SUMMARY:Beispiel-Webinar: Test für Kalender-Links
+DESCRIPTION:Dies ist ein Beispieltermin\, um die Kalender-Links zu testen.
+ \nUmlaute: ä ö ü ß – Sonderzeichen: Komma\, Semikolon\; Backslash \\
+ \n\nMehr Infos: https://solakon.de
+LOCATION:Online
+URL:https://solakon.de
+STATUS:CONFIRMED
+TRANSP:OPAQUE
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Beispiel-Webinar: Test für Kalender-Links
+TRIGGER:-PT60M
+END:VALARM
+END:VEVENT
+END:VCALENDAR

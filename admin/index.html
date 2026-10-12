@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Calendar Links · Solakon</title>
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/admin.css">
+  <script type="module" src="../assets/js/admin.js"></script>
+</head>
+<body>
+  <header class="band">
+    <div class="band__inner">
+      <a class="brand" href="./">
+        <span class="wordmark">SOLAKON</span>
+        <span class="app-name">Calendar Links</span>
+      </a>
+      <button class="btn btn--on-dark" type="button" id="btn-settings">Settings</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="banner"></div>
+
+    <!-- Event list -->
+    <section id="view-list">
+      <div class="toolbar">
+        <h1>Events</h1>
+        <div class="toolbar__actions">
+          <label class="checkbox"><input type="checkbox" id="show-archived"> Show archived</label>
+          <button class="btn" type="button" id="btn-refresh">Refresh</button>
+          <button class="btn btn--primary" type="button" id="btn-new">+ New event</button>
+        </div>
+      </div>
+      <div id="totals" class="tiles"></div>
+      <div id="event-list" class="event-list" aria-live="polite"><p class="muted">Loading events …</p></div>
+    </section>
+
+    <!-- Editor -->
+    <section id="view-editor" hidden>
+      <div class="toolbar">
+        <h1 id="editor-title">New event</h1>
+        <div class="toolbar__actions">
+          <button class="btn" type="button" id="btn-cancel">Cancel</button>
+        </div>
+      </div>
+      <div class="editor-grid">
+        <form id="event-form" class="panel" novalidate>
+          <div class="field">
+            <label for="f-title">Title <span class="req">*</span></label>
+            <input id="f-title" name="title" type="text" maxlength="200" required autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="f-description">Description</label>
+            <textarea id="f-description" name="description" rows="5" maxlength="3000"></textarea>
+            <p class="hint">Plain text. Line breaks and links are kept. Shown on the page and in the calendar entry.</p>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="f-location">Location</label>
+              <input id="f-location" name="location" type="text" maxlength="300" placeholder="Address or “Online”">
+            </div>
+            <div class="field">
+              <label for="f-url">Online link</label>
+              <input id="f-url" name="url" type="url" maxlength="500" placeholder="https://…">
+            </div>
+          </div>
+
+          <fieldset class="field">
+            <legend>Date &amp; time <span class="req">*</span></legend>
+            <label class="checkbox"><input type="checkbox" id="f-allday" name="allDay"> All-day event</label>
+            <div class="field-row">
+              <div class="field">
+                <label for="f-start-date">Start</label>
+                <div class="inline">
+                  <input id="f-start-date" name="startDate" type="date" required>
+                  <input id="f-start-time" name="startTime" type="time" step="300" required class="time">
+                </div>
+              </div>
+              <div class="field">
+                <label for="f-end-date">End</label>
+                <div class="inline">
+                  <input id="f-end-date" name="endDate" type="date" required>
+                  <input id="f-end-time" name="endTime" type="time" step="300" required class="time">
+                </div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="f-timezone">Time zone</label>
+                <select id="f-timezone" name="timezone"></select>
+              </div>
+              <div class="field">
+                <label for="f-reminder">Reminder</label>
+                <select id="f-reminder" name="reminderMinutes">
+                  <option value="">No reminder</option>
+                  <option value="10">10 minutes before</option>
+                  <option value="30">30 minutes before</option>
+                  <option value="60">1 hour before</option>
+                  <option value="120">2 hours before</option>
+                  <option value="1440">1 day before</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for="f-id">Link ID <span class="req">*</span></label>
+            <input id="f-id" name="id" type="text" maxlength="64" autocomplete="off" spellcheck="false">
+            <p class="hint" id="f-id-hint">Becomes part of the link: <code id="f-link-preview"></code></p>
+          </div>
+
+          <div id="form-messages"></div>
+
+          <div class="form-actions">
+            <button class="btn btn--primary btn--lg" type="submit" id="btn-publish">Publish</button>
+          </div>
+        </form>
+
+        <aside class="panel preview">
+          <div class="preview__bar">
+            <strong>Live preview</strong>
+            <label>Device
+              <select id="preview-platform">
+                <option value="ios">iPhone (Safari)</option>
+                <option value="ios-inapp">iPhone (in-app browser)</option>
+                <option value="android">Android</option>
+                <option value="windows">Windows</option>
+                <option value="macos">Mac</option>
+              </select>
+            </label>
+          </div>
+          <iframe id="preview-frame" class="preview__frame" title="Landing page preview" src="../e/?preview=1"></iframe>
+          <p class="hint">Buttons in the preview work, so you can test the calendar entries before publishing. Preview clicks are not tracked.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- After publishing -->
+    <section id="view-published" hidden>
+      <div class="panel published">
+        <div id="publish-status"></div>
+        <h2 id="published-title"></h2>
+        <label for="published-link" class="label">Link for Klaviyo</label>
+        <div class="copy-row">
+          <input id="published-link" type="text" readonly>
+          <button class="btn btn--primary" type="button" id="btn-copy-published">Copy link</button>
+        </div>
+        <details class="utm">
+          <summary>Optional: tag this link (e.g. for an A/B test or a specific email)</summary>
+          <div class="field">
+            <label for="utm-content">utm_content</label>
+            <input id="utm-content" type="text" maxlength="60" placeholder="e.g. reminder-email" spellcheck="false">
+            <p class="hint">Shows up in the Google Sheet. Klaviyo adds utm_source / utm_campaign automatically if UTM tracking is enabled in Klaviyo.</p>
+          </div>
+        </details>
+        <ol class="steps">
+          <li>In Klaviyo, add a <strong>Button</strong> block (e.g. “Zum Kalender hinzufügen”).</li>
+          <li>Paste the link as the button's link address.</li>
+          <li>Send a test email to yourself and click the button on your phone.</li>
+        </ol>
+        <div class="form-actions">
+          <a class="btn" id="btn-open-published" target="_blank" rel="noopener">Open landing page</a>
+          <button class="btn" type="button" id="btn-back">Back to events</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Settings -->
+  <dialog id="settings-dialog" class="dialog">
+    <form method="dialog" id="settings-form">
+      <h2>Settings</h2>
+      <p class="hint">Stored only in this browser. Nothing here is published.</p>
+
+      <h3>GitHub (publishing)</h3>
+      <div class="field-row">
+        <div class="field"><label for="s-owner">Owner (user or organization)</label><input id="s-owner" name="owner" type="text" spellcheck="false"></div>
+        <div class="field"><label for="s-repo">Repository</label><input id="s-repo" name="repo" type="text" spellcheck="false"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="s-branch">Branch</label><input id="s-branch" name="branch" type="text" spellcheck="false" placeholder="main"></div>
+        <div class="field"><label for="s-token">Fine-grained access token</label><input id="s-token" name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></div>
+      </div>
+      <div class="field">
+        <label for="s-site">Public site URL</label>
+        <input id="s-site" name="siteUrl" type="url" spellcheck="false" placeholder="https://cal.solakon.de/">
+        <p class="hint">The address links are built from. Use the custom domain once it's set up.</p>
+      </div>
+
+      <h3>Tracking (Google Sheets)</h3>
+      <div class="field">
+        <label for="s-tracking">Apps Script web app URL</label>
+        <input id="s-tracking" name="trackingUrl" type="url" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+      </div>
+      <div class="field">
+        <label for="s-statskey">Stats key</label>
+        <input id="s-statskey" name="statsKey" type="password" autocomplete="off" spellcheck="false">
+        <p class="hint">Shown in the Apps Script log after running <code>setup</code>. Needed to show numbers here.</p>
+      </div>
+      <div id="tracking-apply"></div>
+
+      <div id="settings-messages"></div>
+      <div class="form-actions">
+        <button class="btn" type="button" id="btn-test-settings">Test connection</button>
+        <span class="spacer"></span>
+        <button class="btn" type="button" id="btn-close-settings">Close</button>
+        <button class="btn btn--primary" type="button" id="btn-save-settings">Save</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

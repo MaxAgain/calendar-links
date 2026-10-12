@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Zum Kalender hinzufügen · Solakon</title>
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/landing.css">
+  <script type="module" src="../assets/js/landing.js"></script>
+</head>
+<body>
+  <header class="band">
+    <div class="band__inner">
+      <!-- Replace the text with the logo once available: <img src="../assets/img/logo-white.svg" alt="Solakon"> -->
+      <a class="wordmark" href="https://solakon.de">SOLAKON</a>
+    </div>
+  </header>
+
+  <main id="app" aria-live="polite">
+    <div class="card skeleton">Termin wird geladen … / Loading event …</div>
+  </main>
+
+  <noscript>
+    <main><div class="card">
+      <p>Bitte aktivieren Sie JavaScript, um diesen Termin hinzuzufügen.<br>Please enable JavaScript to add this event.</p>
+    </div></main>
+  </noscript>
+
+  <!-- Fallback for very old browsers without ES module support: offer the .ics file directly. -->
+  <script nomodule>
+    (function () {
+      var match = /[?&]id=([a-z0-9-]{1,64})/.exec(location.search.toLowerCase());
+      var app = document.getElementById('app');
+      if (!match) { app.innerHTML = '<div class="card"><p>Termin nicht gefunden / Event not found.</p></div>'; return; }
+      app.innerHTML = '<div class="card"><p>Zum Kalender hinzufügen / Add to calendar:</p>' +
+        '<a class="btn btn--primary" href="../events/' + match[1] + '.ics">Kalenderdatei öffnen / Open calendar file</a></div>';
+    })();
+  </script>
+</body>
+</html>
