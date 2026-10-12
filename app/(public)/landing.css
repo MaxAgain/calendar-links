@@ -1,0 +1,321 @@
+/*
+ * Recipient page styles. Solakon GmbH color tokens are the only colors used here
+ * (the dashboard uses the same palette via Tailwind in app/(admin)/globals.css).
+ * Names match the Solakon Tailwind v4 theme 1:1 (--color-sk-*).
+ * Values are HEX because older in-app browsers / Android webviews don't support oklch();
+ * the canonical OKLCH values are kept in the comments.
+ */
+:root {
+  /* Solakon Yellow — primary brand color */
+  --color-sk-yellow-50: #FEFBEB;  /* oklch(98.7% 0.022 98.866) */
+  --color-sk-yellow-100: #FFF8CD; /* oklch(97.4% 0.056 99.847) */
+  --color-sk-yellow-200: #FFEFA1; /* oklch(94.8% 0.099 98.194) */
+  --color-sk-yellow-300: #FFE06C; /* oklch(91.1% 0.139 94.765) */
+  --color-sk-yellow-400: #FFCA22; /* oklch(86.2% 0.17 88.59) — base */
+  --color-sk-yellow-500: #F0B426; /* oklch(80.4% 0.157 82.701) */
+  --color-sk-yellow-600: #CE8B20; /* oklch(68.8% 0.138 72.488) */
+  --color-sk-yellow-700: #A3631D; /* oklch(55.9% 0.115 63.096) */
+  --color-sk-yellow-800: #854E1D; /* oklch(47.9% 0.097 58.561) */
+  --color-sk-yellow-900: #70401E; /* oklch(42.3% 0.081 54.362) */
+  --color-sk-yellow-950: #40210E; /* oklch(28.6% 0.056 50.467) */
+  --color-sk-yellow: var(--color-sk-yellow-400);
+
+  /* Solakon Blue — links, focus, secondary actions */
+  --color-sk-blue-50: #EFF6FF;  /* oklch(97% 0.014 256.41) */
+  --color-sk-blue-100: #DAE9FF; /* oklch(93% 0.034 257.391) */
+  --color-sk-blue-200: #BDD9FF; /* oklch(87.8% 0.06 255.934) */
+  --color-sk-blue-300: #90C2FF; /* oklch(80.2% 0.102 253.619) */
+  --color-sk-blue-400: #549DFF; /* oklch(69.5% 0.162 256.43) */
+  --color-sk-blue-500: #3178FF; /* oklch(60.7% 0.213 261.621) */
+  --color-sk-blue-600: #1A4FFF; /* oklch(52.7% 0.263 264.687) — base */
+  --color-sk-blue-700: #1C39EA; /* oklch(47.3% 0.261 266.182) */
+  --color-sk-blue-800: #1D32BD; /* oklch(41.4% 0.214 267.444) */
+  --color-sk-blue-900: #1D3392; /* oklch(37.2% 0.157 267.328) */
+  --color-sk-blue-950: #172359; /* oklch(28.2% 0.098 269.741) */
+  --color-sk-blue: var(--color-sk-blue-600);
+
+  /* Solakon Gray — surfaces, borders, text */
+  --color-sk-gray-50: #FAFAFA;  /* oklch(98.5% 0 0) */
+  --color-sk-gray-100: #F5F5F5; /* oklch(97% 0 0) */
+  --color-sk-gray-200: #E4E4E4; /* oklch(91.9% 0 0) — base */
+  --color-sk-gray-300: #D3D3D3; /* oklch(86.7% 0 0) */
+  --color-sk-gray-400: #9E9E9E; /* oklch(69.9% 0 0) */
+  --color-sk-gray-500: #6F6F6F; /* oklch(54.2% 0 0) */
+  --color-sk-gray-600: #4E4E4E; /* oklch(42.4% 0 0) */
+  --color-sk-gray-700: #3B3B3B; /* oklch(35.2% 0 0) */
+  --color-sk-gray-800: #212121; /* oklch(24.8% 0 0) */
+  --color-sk-gray-900: #151515; /* oklch(19.6% 0 0) */
+  --color-sk-gray-950: #0A0A0A; /* oklch(14.5% 0 0) */
+  --color-sk-gray: var(--color-sk-gray-200);
+
+  /* Solakon Black (= sk-gray-800) and white (referenced in the guidelines, not in the theme) */
+  --color-sk-black: #212121;    /* oklch(24.8% 0 0) */
+  --color-sk-white: #FFFFFF;
+
+  /* Status colors — Tailwind scales as allowed by the guidelines */
+  --color-green-50: #F0FDF4;
+  --color-green-200: #BBF7D0;
+  --color-green-700: #15803D;
+  --color-green-800: #166534;
+  --color-amber-50: #FFFBEB;
+  --color-amber-200: #FDE68A;
+  --color-amber-800: #92400E;
+  --color-red-50: #FEF2F2;
+  --color-red-200: #FECACA;
+  --color-red-700: #B91C1C;
+  --color-red-800: #991B1B;
+
+  /* Semantic aliases — components use these */
+  --bg: var(--color-sk-gray-50);
+  --surface: var(--color-sk-white);
+  --surface-muted: var(--color-sk-gray-100);
+  --border: var(--color-sk-gray-200);
+  --border-strong: var(--color-sk-gray-300);
+  --text: var(--color-sk-gray-800);
+  --text-muted: var(--color-sk-gray-600);
+  --text-subtle: var(--color-sk-gray-500);
+  --primary: var(--color-sk-yellow-400);
+  --primary-hover: var(--color-sk-yellow-500);
+  --on-primary: var(--color-sk-gray-800); /* never white on yellow */
+  --link: var(--color-sk-blue-600);
+  --link-hover: var(--color-sk-blue-800);
+  --focus: var(--color-sk-blue-600);
+  --band: var(--color-sk-gray-800);
+  --on-band: var(--color-sk-white);
+  --overlay: rgb(33 33 33 / 0.5); /* sk-gray-800 at 50% */
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgb(33 33 33 / 0.06), 0 4px 16px rgb(33 33 33 / 0.06);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+a { color: var(--link); }
+a:hover { color: var(--link-hover); }
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.band {
+  background: var(--band);
+  color: var(--on-band);
+  padding: 14px 16px;
+}
+
+.band__inner {
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wordmark {
+  color: var(--on-band);
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  font-size: 18px;
+}
+.wordmark:hover { color: var(--on-band); }
+.wordmark img { display: block; height: 22px; width: auto; }
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.meta { list-style: none; margin: 0 0 16px; padding: 0; }
+.meta li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 4px 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.meta .icon { flex: none; margin-top: 2px; color: var(--text-muted); }
+.meta small { display: block; color: var(--text-muted); font-size: 13px; }
+
+.description {
+  margin: 0 0 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+
+.label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn:hover { background: var(--surface-muted); color: var(--text); }
+
+.btn--primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+  font-size: 17px;
+  font-weight: 700;
+  min-height: 56px;
+}
+.btn--primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: var(--on-primary); }
+
+.btn-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+/* One tappable list on phones, two columns once labels fit on one line. */
+@media (min-width: 440px) {
+  .btn-grid { grid-template-columns: 1fr 1fr; }
+}
+.btn-grid .btn { justify-content: flex-start; font-size: 15px; padding: 10px 14px; text-align: left; }
+.btn__label { min-width: 0; }
+
+.section { margin-top: 20px; }
+
+.notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-amber-200);
+  background: var(--color-amber-50);
+  color: var(--color-amber-800);
+  font-size: 15px;
+}
+.notice .icon { flex: none; margin-top: 2px; }
+.notice--info {
+  border-color: var(--color-sk-blue-200);
+  background: var(--color-sk-blue-50);
+  color: var(--color-sk-blue-900);
+}
+.notice--muted {
+  border-color: var(--border);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+.notice .btn { margin-top: 10px; min-height: 40px; width: auto; display: inline-flex; }
+
+.toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  max-width: 448px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--band);
+  color: var(--on-band);
+  box-shadow: var(--shadow);
+  font-size: 15px;
+}
+
+.preview-badge {
+  margin: 0 0 12px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-sk-yellow-100);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.skeleton {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.footer {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

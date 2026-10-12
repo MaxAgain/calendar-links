@@ -1,14 +1,44 @@
 {
-  "name": "solakon-add-to-calendar",
+  "name": "solakon-calendar-links",
+  "version": "2.0.0",
   "private": true,
-  "type": "module",
-  "description": "One link per event for Klaviyo emails: smart add-to-calendar landing page, dashboard and Google Sheets tracking. Static site for GitHub Pages.",
-  "scripts": {
-    "test": "node --test tests/*.test.mjs",
-    "serve": "python3 -m http.server 8000",
-    "event": "node scripts/build-event.mjs"
-  },
+  "description": "One link per event for Klaviyo emails: smart add-to-calendar page, Clerk-protected dashboard, Postgres click tracking with Google Sheets sync.",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "env:pull": "vercel env pull .env.local --yes",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
+    "db:studio": "dotenv -e .env.local -- drizzle-kit studio"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^7.9.14",
+    "@vercel/functions": "^3.9.11",
+    "drizzle-orm": "^0.45.4",
+    "next": "16.4.0",
+    "pg": "^8.23.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^24",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv-cli": "^11.0.0",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^5.0.4"
   }
 }
