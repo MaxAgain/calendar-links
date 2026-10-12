@@ -128,15 +128,8 @@ a:hover { color: var(--link-hover); }
   justify-content: space-between;
 }
 
-.wordmark {
-  color: var(--on-band);
-  text-decoration: none;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  font-size: 18px;
-}
-.wordmark:hover { color: var(--on-band); }
-.wordmark img { display: block; height: 22px; width: auto; }
+.wordmark { display: block; }
+.wordmark img { display: block; height: 24px; width: auto; }
 
 main {
   flex: 1;
