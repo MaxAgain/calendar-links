@@ -37,7 +37,7 @@ app/
     preview/       preview page (framed by the dashboard)
   (admin)/         dashboard, Tailwind with the Solakon theme
     dashboard/     events, integrations, server actions
-    sign-in/, no-access/
+    sign-in/, sign-up/, no-access/
   api/
     track/         anonymous tracking beacon
     cron/sync-sheets/   scheduled Sheet sync
@@ -62,7 +62,7 @@ tests/             Vitest tests
 
 ## Privacy
 
-- **Clerk runs only on admin routes.** `proxy.ts` matches `/`, `/dashboard/*`, `/sign-in/*` and `/no-access`. Recipient pages, `/api/track` and the cron job get no Clerk scripts, cookies or redirects.
+- **Clerk runs only on admin routes.** `proxy.ts` matches `/`, `/dashboard/*`, `/sign-in/*`, `/sign-up/*`, `/no-access` and Clerk's proxy path `/__clerk/*`. Recipient pages, `/api/track` and the cron job get no Clerk scripts, cookies or redirects.
 - **Tracking is anonymous.** No cookies or localStorage, no IP addresses, no raw user agent. Only coarse values are stored (OS, browser, device type, in-app browser, language, time zone, UTM parameters, app version). The page-session ID exists only in memory during the visit.
 - **Actions tracked:** `view`, `add` (calendar button clicked) and `not_found` (broken or mistyped link).
 - **No consent banner is needed** under TDDDG §25 for this setup, because nothing is stored on the recipient's device. As a result, returning visitors can't be counted.

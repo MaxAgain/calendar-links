@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
       { source: '/dashboard/:path*', headers: [{ key: 'X-Frame-Options', value: 'DENY' }] },
       { source: '/', headers: [{ key: 'X-Frame-Options', value: 'DENY' }] },
       { source: '/sign-in/:path*', headers: [{ key: 'X-Frame-Options', value: 'DENY' }] },
+      { source: '/sign-up/:path*', headers: [{ key: 'X-Frame-Options', value: 'DENY' }] },
       { source: '/no-access', headers: [{ key: 'X-Frame-Options', value: 'DENY' }] },
       { source: '/preview', headers: [{ key: 'X-Frame-Options', value: 'SAMEORIGIN' }] },
     ];
