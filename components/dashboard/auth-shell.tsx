@@ -27,6 +27,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
           <span className="text-sm text-sidebar-foreground/70">Calendar Links</span>
         </div>
         <div className="flex max-w-md flex-col gap-8">
+          <Image src="/auth-illustration.svg" alt="" width={480} height={380} unoptimized className="h-auto w-full" />
           <h1 className="text-3xl font-semibold tracking-tight text-balance">One link per event. The right calendar on every device.</h1>
           <ul className="flex flex-col gap-4 text-sm">
             {FEATURES.map(({ icon: Icon, text }) => (
