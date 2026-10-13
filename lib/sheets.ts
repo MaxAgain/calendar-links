@@ -1,9 +1,21 @@
 // Google Sheets integration: uses the Google account a staff member signed in with (via Clerk).
-// Scope `drive.file` only grants access to files this app creates — not to the user's other files.
+// Writes into a spreadsheet the staff member already has. That needs the `spreadsheets` scope:
+// `drive.file` only reaches files the app created itself.
 import { clerkClient } from '@clerk/nextjs/server';
-import { COLORS, LOG_COLUMNS, SHEET_TIMEZONE, SUMMARY_HEADERS, summaryFormulas } from './sheet-layout';
+import {
+  COLORS,
+  ExistingRows,
+  KEY_COLUMNS,
+  SUMMARY_HEADERS,
+  columnLetter,
+  hasStandardLayout,
+  layoutRow,
+  planHeader,
+  summaryFormulas,
+  type LogLayout,
+} from './sheet-layout';
 
-export const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+export const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
 const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 export type GoogleErrorCode = 'no_google_account' | 'missing_scope' | 'token_failed' | 'api_error';
@@ -29,7 +41,7 @@ async function googleToken(userId: string) {
 export async function hasSheetsAccess(userId: string): Promise<{ google: boolean; scope: boolean }> {
   try {
     const token = await googleToken(userId);
-    return { google: Boolean(token), scope: Boolean(token?.scopes?.includes(DRIVE_FILE_SCOPE)) };
+    return { google: Boolean(token), scope: Boolean(token?.scopes?.includes(SHEETS_SCOPE)) };
   } catch {
     return { google: false, scope: false };
   }
@@ -38,7 +50,7 @@ export async function hasSheetsAccess(userId: string): Promise<{ google: boolean
 export async function getGoogleAccessToken(userId: string): Promise<string> {
   const token = await googleToken(userId);
   if (!token) throw new GoogleError('no_google_account', 'The connected user has no Google account linked anymore.');
-  if (!token.scopes?.includes(DRIVE_FILE_SCOPE)) {
+  if (!token.scopes?.includes(SHEETS_SCOPE)) {
     throw new GoogleError('missing_scope', 'Google Sheets access was not granted (or was revoked).');
   }
   return token.token;
@@ -62,24 +74,93 @@ const cellFormat = (sheetId: number, range: Record<string, number>, format: Reco
   repeatCell: { range: { sheetId, ...range }, cell: { userEnteredFormat: format }, fields: `userEnteredFormat(${fields})` },
 });
 
-/** Creates the tracking spreadsheet in the user's Google Drive. */
-export async function createTrackingSpreadsheet(token: string): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> {
-  const SUMMARY = 0;
-  const LOG = 1;
-  const created = await google<{ spreadsheetId: string; spreadsheetUrl: string }>(token, 'POST', SHEETS_API, {
-    // en_GB: formulas use commas as separators regardless of the viewer's language.
-    properties: { title: 'Solakon Calendar Links – Tracking', locale: 'en_GB', timeZone: SHEET_TIMEZONE },
-    sheets: [
-      { properties: { sheetId: SUMMARY, title: 'Summary', index: 0, gridProperties: { frozenRowCount: 5 } } },
-      { properties: { sheetId: LOG, title: 'Log', index: 1, gridProperties: { frozenRowCount: 1 } } },
-    ],
-  });
-  const id = created.spreadsheetId;
+const headerFormat = { backgroundColor: COLORS.header, textFormat: { foregroundColor: COLORS.onHeader, bold: true } };
 
-  await google(token, 'POST', `${SHEETS_API}/${id}/values:batchUpdate`, {
+/** A tab name inside an A1 range: 'Log'!A1, with quotes doubled. */
+const tabRange = (tab: string, range: string) => `'${tab.replace(/'/g, "''")}'!${range}`;
+
+interface SheetProps {
+  sheetId: number;
+  title: string;
+  gridProperties?: { rowCount?: number; columnCount?: number };
+}
+
+export interface SpreadsheetInfo {
+  spreadsheetId: string;
+  spreadsheetUrl: string;
+  title: string;
+  sheets: SheetProps[];
+}
+
+/** Reads the spreadsheet's title and tabs. Fails if the user cannot open it. */
+export async function getSpreadsheet(token: string, spreadsheetId: string): Promise<SpreadsheetInfo> {
+  try {
+    const data = await google<{ spreadsheetId: string; spreadsheetUrl: string; properties: { title: string }; sheets: { properties: SheetProps }[] }>(
+      token,
+      'GET',
+      `${SHEETS_API}/${spreadsheetId}?fields=spreadsheetId,spreadsheetUrl,properties.title,sheets.properties(sheetId,title,gridProperties)`,
+    );
+    return { spreadsheetId: data.spreadsheetId, spreadsheetUrl: data.spreadsheetUrl, title: data.properties.title, sheets: data.sheets.map((s) => s.properties) };
+  } catch (err) {
+    if (err instanceof GoogleError && /Google API (403|404)/.test(err.message)) {
+      throw new GoogleError('api_error', 'This spreadsheet could not be opened. Check the link and make sure your Google account can edit the sheet.');
+    }
+    throw err;
+  }
+}
+
+async function addTab(token: string, spreadsheetId: string, title: string, frozenRowCount: number): Promise<SheetProps> {
+  const res = await google<{ replies: { addSheet: { properties: SheetProps } }[] }>(token, 'POST', `${SHEETS_API}/${spreadsheetId}:batchUpdate`, {
+    requests: [{ addSheet: { properties: { title, gridProperties: { frozenRowCount } } } }],
+  });
+  return res.replies[0].addSheet.properties;
+}
+
+/**
+ * Makes the log tab ready to receive rows and returns where each column lives. Adds the tab if it is missing,
+ * writes the header into an empty tab, and adds missing columns after the last header cell. Never writes into a
+ * cell that already has content.
+ */
+export async function prepareLogTab(token: string, spreadsheetId: string, tab: string): Promise<LogLayout> {
+  const info = await getSpreadsheet(token, spreadsheetId);
+  const sheet = info.sheets.find((s) => s.title === tab) ?? (await addTab(token, spreadsheetId, tab, 1));
+
+  const current = await google<{ values?: unknown[][] }>(token, 'GET', `${SHEETS_API}/${spreadsheetId}/values/${encodeURIComponent(tabRange(tab, '1:1'))}`);
+  const plan = planHeader(current.values?.[0] ?? []);
+  if (!plan.missing.length) return plan;
+
+  const columnCount = sheet.gridProperties?.columnCount ?? 26;
+  const requests: unknown[] = [];
+  if (plan.width > columnCount) {
+    requests.push({ appendDimension: { sheetId: sheet.sheetId, dimension: 'COLUMNS', length: plan.width - columnCount } });
+  }
+  requests.push(cellFormat(sheet.sheetId, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: plan.start, endColumnIndex: plan.width }, headerFormat, 'backgroundColor,textFormat'));
+  if (plan.start === 0) {
+    // A fresh log: show timestamps as date and time.
+    requests.push(cellFormat(sheet.sheetId, { startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 }, { numberFormat: { type: 'DATE_TIME', pattern: 'yyyy-mm-dd hh:mm:ss' } }, 'numberFormat'));
+  }
+  // Grow the grid first, so the header cells exist before they are written.
+  await google(token, 'POST', `${SHEETS_API}/${spreadsheetId}:batchUpdate`, { requests });
+  const range = tabRange(tab, `${columnLetter(plan.start)}1`);
+  await google(token, 'PUT', `${SHEETS_API}/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=RAW`, {
+    values: [plan.missing],
+  });
+  return plan;
+}
+
+/**
+ * Adds a Summary tab with formulas over the log, but only if there is no Summary tab yet, the log tab is
+ * called "Log" and its columns are in the standard order (the formulas refer to them by letter).
+ */
+export async function addSummaryTabIfPossible(token: string, spreadsheetId: string, tab: string, layout: LogLayout): Promise<boolean> {
+  if (tab !== 'Log' || !hasStandardLayout(layout)) return false;
+  const info = await getSpreadsheet(token, spreadsheetId);
+  if (info.sheets.some((s) => s.title === 'Summary')) return false;
+  const { sheetId: SUMMARY } = await addTab(token, spreadsheetId, 'Summary', 5);
+
+  await google(token, 'POST', `${SHEETS_API}/${spreadsheetId}/values:batchUpdate`, {
     valueInputOption: 'USER_ENTERED',
     data: [
-      { range: 'Log!A1', values: [LOG_COLUMNS] },
       { range: 'Summary!A1', values: [['Add-to-calendar tracking']] },
       {
         range: 'Summary!A2',
@@ -96,11 +177,8 @@ export async function createTrackingSpreadsheet(token: string): Promise<{ spread
     ],
   });
 
-  const headerFormat = { backgroundColor: COLORS.header, textFormat: { foregroundColor: COLORS.onHeader, bold: true } };
-  await google(token, 'POST', `${SHEETS_API}/${id}:batchUpdate`, {
+  await google(token, 'POST', `${SHEETS_API}/${spreadsheetId}:batchUpdate`, {
     requests: [
-      cellFormat(LOG, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: LOG_COLUMNS.length }, headerFormat, 'backgroundColor,textFormat'),
-      cellFormat(LOG, { startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 }, { numberFormat: { type: 'DATE_TIME', pattern: 'yyyy-mm-dd hh:mm:ss' } }, 'numberFormat'),
       cellFormat(SUMMARY, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 }, { textFormat: { bold: true, fontSize: 14 } }, 'textFormat'),
       cellFormat(SUMMARY, { startRowIndex: 1, endRowIndex: 2, startColumnIndex: 0, endColumnIndex: 8 }, { backgroundColor: COLORS.totals, textFormat: { bold: true } }, 'backgroundColor,textFormat'),
       cellFormat(SUMMARY, { startRowIndex: 1, endRowIndex: 2, startColumnIndex: 5, endColumnIndex: 6 }, { numberFormat: { type: 'PERCENT', pattern: '0%' } }, 'numberFormat'),
@@ -112,14 +190,24 @@ export async function createTrackingSpreadsheet(token: string): Promise<{ spread
       { updateDimensionProperties: { range: { sheetId: SUMMARY, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 }, properties: { pixelSize: 260 }, fields: 'pixelSize' } },
     ],
   });
-
-  return { spreadsheetId: id, spreadsheetUrl: created.spreadsheetUrl };
+  return true;
 }
 
-/** Appends rows to the Log tab. RAW input: values are never interpreted as formulas. */
-export async function appendLogRows(token: string, spreadsheetId: string, rows: (string | number)[][]): Promise<void> {
-  const range = encodeURIComponent('Log!A:Q');
+/** Reads the columns that identify a click, so rows already in the sheet are not added again. */
+export async function readExistingRows(token: string, spreadsheetId: string, tab: string, layout: LogLayout): Promise<ExistingRows> {
+  const params = new URLSearchParams({ majorDimension: 'COLUMNS', valueRenderOption: 'UNFORMATTED_VALUE' });
+  for (const column of KEY_COLUMNS) {
+    const letter = columnLetter(layout.index[column]);
+    params.append('ranges', tabRange(tab, `${letter}2:${letter}`));
+  }
+  const res = await google<{ valueRanges: { values?: unknown[][] }[] }>(token, 'GET', `${SHEETS_API}/${spreadsheetId}/values:batchGet?${params}`);
+  return new ExistingRows(Object.fromEntries(KEY_COLUMNS.map((column, i) => [column, res.valueRanges[i]?.values?.[0] ?? []])));
+}
+
+/** Appends rows below the last row of the log tab. RAW input: values are never interpreted as formulas. */
+export async function appendLogRows(token: string, spreadsheetId: string, tab: string, layout: LogLayout, rows: (string | number)[][]): Promise<void> {
+  const range = encodeURIComponent(tabRange(tab, `A1:${columnLetter(layout.width - 1)}1`));
   await google(token, 'POST', `${SHEETS_API}/${spreadsheetId}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
-    values: rows,
+    values: rows.map((row) => layoutRow(row, layout)),
   });
 }

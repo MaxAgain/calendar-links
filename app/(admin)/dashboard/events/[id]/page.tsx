@@ -5,8 +5,10 @@ import { RangeToggle } from '@/components/dashboard/analytics/range-toggle';
 import { CopyButton } from '@/components/dashboard/copy-button';
 import { EventActionsMenu } from '@/components/dashboard/event-actions-menu';
 import { EventDetailsCard } from '@/components/dashboard/event-detail/event-details-card';
-import { EVENT_TABS, EventTabs, type EventTab } from '@/components/dashboard/event-detail/event-tabs';
+import { EventTabs } from '@/components/dashboard/event-detail/event-tabs';
+import { EVENT_TABS, type EventTab } from '@/components/dashboard/event-detail/tabs';
 import { SharePanel } from '@/components/dashboard/event-detail/share-panel';
+import { PreviewPanel } from '@/components/dashboard/event-editor/preview-panel';
 import { GuardedLink } from '@/components/dashboard/navigation-guard';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { eventStatus, StatusBadge } from '@/components/dashboard/status-badge';
@@ -95,7 +97,16 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
           </>
         }
         share={<SharePanel eventId={event.id} baseLink={link} />}
-        details={<EventDetailsCard event={event} />}
+        details={
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
+            <EventDetailsCard event={event} />
+            <PreviewPanel
+              draft={event}
+              title="Event card"
+              description="What recipients see when they open the link. Preview clicks are not tracked."
+            />
+          </div>
+        }
       />
     </>
   );

@@ -3,7 +3,8 @@ import { SheetsCard } from '@/components/dashboard/sheets-card';
 import { requireStaffPage } from '@/lib/auth';
 import { getSetting } from '@/lib/events';
 import { formatDateTime } from '@/lib/format';
-import { DRIVE_FILE_SCOPE, hasSheetsAccess } from '@/lib/sheets';
+import { DEFAULT_LOG_TAB } from '@/lib/sheet-layout';
+import { SHEETS_SCOPE, hasSheetsAccess } from '@/lib/sheets';
 import { SHEET_SETTING, type SheetConfig } from '@/lib/sync';
 
 export default async function IntegrationsPage() {
@@ -21,6 +22,8 @@ export default async function IntegrationsPage() {
           config
             ? {
                 spreadsheetUrl: config.spreadsheetUrl,
+                spreadsheetTitle: config.spreadsheetTitle ?? 'Google Sheet',
+                sheetName: config.sheetName || DEFAULT_LOG_TAB,
                 connectedEmail: config.connectedEmail,
                 connectedAt: config.connectedAt,
                 rowsSynced: config.rowsSynced,
@@ -30,7 +33,7 @@ export default async function IntegrationsPage() {
             : null
         }
         access={access}
-        driveScope={DRIVE_FILE_SCOPE}
+        sheetsScope={SHEETS_SCOPE}
         syncSchedule={process.env.SHEET_SYNC_SCHEDULE_LABEL || 'Once a day (every 15 minutes on Vercel Pro). Use “Sync now” at any time.'}
       />
     </>

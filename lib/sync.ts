@@ -1,10 +1,10 @@
 // Copies new clicks from Postgres into the connected Google Sheet.
-// Postgres is the source of truth; the Sheet is a convenient view that can be recreated any time.
+// Postgres is the source of truth. The Sheet is a copy that only ever grows: rows are appended, never changed.
 import { and, asc, eq, gt, lt, sql } from 'drizzle-orm';
 import { getDb } from './db';
 import { clicks, settings } from './db/schema';
-import { clickToRow } from './sheet-layout';
-import { appendLogRows, getGoogleAccessToken } from './sheets';
+import { clickToRow, DEFAULT_LOG_TAB, type ExistingRows, type LogLayout } from './sheet-layout';
+import { appendLogRows, getGoogleAccessToken, prepareLogTab, readExistingRows } from './sheets';
 
 export const SHEET_SETTING = 'google_sheet';
 const BATCH_SIZE = 2_000;
@@ -13,6 +13,10 @@ const MAX_BATCHES_PER_RUN = 10;
 export interface SheetConfig {
   spreadsheetId: string;
   spreadsheetUrl: string;
+  /** Missing in configs saved before existing sheets could be connected. */
+  spreadsheetTitle?: string;
+  /** Tab that receives one row per click. Missing in older configs: "Log". */
+  sheetName?: string;
   connectedUserId: string;
   connectedEmail: string;
   connectedAt: string;
@@ -40,14 +44,16 @@ type BatchResult =
 
 /**
  * Syncs in batches, one short transaction per batch. Each one locks the integration setting row
- * (NOWAIT), so a cron run and a manual "Sync now" can never append the same rows twice, and commits
- * its progress before the next batch starts. If the function dies mid-run, only the batch in flight
- * can be repeated. Accepted residual risk: if an append succeeds but its commit fails, that one
- * batch is appended again on the next run.
+ * (NOWAIT), so a cron run and a manual "Sync now" never run at the same time, and commits its progress
+ * before the next batch starts. On top of the cursor, every run reads which clicks the sheet already
+ * holds (click_id, or the row contents for rows written before click_id existed) and skips them, so a
+ * newly connected sheet that already has rows, or a batch whose commit failed, is never duplicated.
  */
 export async function syncSheet(): Promise<SyncResult> {
   let rows = 0;
   let token: string | null = null;
+  let layout: LogLayout | null = null;
+  let existing: ExistingRows | null = null;
   for (let i = 0; i < MAX_BATCHES_PER_RUN; i++) {
     let result: BatchResult;
     try {
@@ -59,6 +65,10 @@ export async function syncSheet(): Promise<SyncResult> {
         const save = () => tx.update(settings).set({ value: config, updatedAt: new Date() }).where(eq(settings.key, SHEET_SETTING));
         try {
           token ??= await getGoogleAccessToken(config.connectedUserId);
+          const tab = config.sheetName || DEFAULT_LOG_TAB;
+          // Read the header every run: columns may have been moved or renamed in the sheet since the last sync.
+          layout ??= await prepareLogTab(token, config.spreadsheetId, tab);
+          existing ??= await readExistingRows(token, config.spreadsheetId, tab, layout);
           // Inserts run after the response, so a lower id can commit after a higher one. Only sync
           // clicks old enough that no earlier id can still be in flight, or the cursor would skip them.
           const batch = await tx
@@ -67,15 +77,18 @@ export async function syncSheet(): Promise<SyncResult> {
             .where(and(gt(clicks.id, config.lastSyncedClickId), lt(clicks.createdAt, sql`now() - interval '1 minute'`)))
             .orderBy(asc(clicks.id))
             .limit(BATCH_SIZE);
-          if (batch.length) {
-            await appendLogRows(token, config.spreadsheetId, batch.map(clickToRow));
-            config.lastSyncedClickId = batch[batch.length - 1].id;
-            config.rowsSynced += batch.length;
+          const known = existing;
+          const fresh = batch.map(clickToRow).filter((row) => !known.has(row));
+          if (fresh.length) {
+            await appendLogRows(token, config.spreadsheetId, tab, layout, fresh);
+            fresh.forEach((row) => known.add(row));
+            config.rowsSynced += fresh.length;
           }
+          if (batch.length) config.lastSyncedClickId = batch[batch.length - 1].id;
           config.lastSyncAt = new Date().toISOString();
           config.lastError = null;
           await save();
-          return { status: 'ok', count: batch.length, more: batch.length === BATCH_SIZE };
+          return { status: 'ok', count: fresh.length, more: batch.length === BATCH_SIZE };
         } catch (err) {
           // Keep the progress made so far; report the problem in the dashboard.
           config.lastError = (err as Error).message;

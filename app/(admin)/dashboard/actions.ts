@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { requireStaffAction } from '@/lib/auth';
 import { validateEvent, type EventInput } from '@/lib/calendar';
 import { deleteSetting, getSetting, saveEvent, setArchived, setSetting } from '@/lib/events';
-import { createTrackingSpreadsheet, getGoogleAccessToken } from '@/lib/sheets';
+import { DEFAULT_LOG_TAB, parseSpreadsheetId } from '@/lib/sheet-layout';
+import { addSummaryTabIfPossible, getGoogleAccessToken, getSpreadsheet, prepareLogTab } from '@/lib/sheets';
 import { SHEET_SETTING, syncSheet, type SheetConfig, type SyncResult } from '@/lib/sync';
 
 export type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -52,14 +53,29 @@ export async function setArchivedAction(id: string, archived: boolean): Promise<
   }
 }
 
-/** Creates a new tracking sheet in the current user's Google Drive and fills it with all clicks so far. */
-export async function createSheetAction(): Promise<ActionResult<{ sync: SyncResult }>> {
+/**
+ * Connects a spreadsheet the current user can edit and copies all clicks into it. Existing rows and cells are
+ * kept: columns are matched by header name, missing ones are added, and clicks already in the sheet are skipped.
+ */
+export async function connectSheetAction(input: { url: string; tab: string }): Promise<ActionResult<{ sync: SyncResult }>> {
   try {
     const user = await requireStaffAction();
+    const spreadsheetId = parseSpreadsheetId(String(input.url ?? ''));
+    if (!spreadsheetId) return { ok: false, error: 'Paste the link of a Google Sheet (https://docs.google.com/spreadsheets/d/…).' };
+    const tab = String(input.tab ?? '').trim() || DEFAULT_LOG_TAB;
+    if (tab.length > 100) return { ok: false, error: 'The tab name is too long.' };
+
     const token = await getGoogleAccessToken(user.id);
-    const sheet = await createTrackingSpreadsheet(token);
+    const sheet = await getSpreadsheet(token, spreadsheetId);
+    const layout = await prepareLogTab(token, spreadsheetId, tab);
+    await addSummaryTabIfPossible(token, spreadsheetId, tab, layout);
+
+    // Starts from the first click; the sync skips every click the sheet already holds.
     const config: SheetConfig = {
-      ...sheet,
+      spreadsheetId,
+      spreadsheetUrl: sheet.spreadsheetUrl,
+      spreadsheetTitle: sheet.title,
+      sheetName: tab,
       connectedUserId: user.id,
       connectedEmail: user.email,
       connectedAt: new Date().toISOString(),

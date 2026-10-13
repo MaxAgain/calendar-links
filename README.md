@@ -153,15 +153,18 @@ Commit the generated `drizzle/` files. Do not edit generated migrations by hand.
 
 ## Google Sheets integration
 
-Postgres is the source of truth. The Sheet is a copy that can be recreated at any time.
+Postgres is the source of truth. The Sheet is a copy that only grows: the sync appends rows and never changes existing cells.
 
-- **Create tracking sheet** on the Integrations page (`/dashboard/integrations`) creates "Solakon Calendar Links – Tracking" in the connecting user's Google Drive. It has a **Log** tab (one row per click) and a **Summary** tab.
-- The app uses only the scope `https://www.googleapis.com/auth/drive.file`, so it can see only files it creates. It reads the Google token that Clerk holds for the signed-in user.
-- Rows are appended with RAW input, so values are never interpreted as formulas. The Sheet uses locale `en_GB` and time zone `Europe/Berlin`.
+- **Connect sheet** on the Integrations page (`/dashboard/integrations`) takes the link of a Google Sheet the signed-in user can edit, plus a tab name (default **Log**, one row per click). The tab is added if it is missing.
+- **Columns are matched by header name** (case and spaces don't matter: "Event ID" = `event_id`). Columns the sheet doesn't have yet are added after the last header cell. Other columns in the sheet are left empty in new rows.
+- **No duplicates.** Each row carries a `click_id`. Every sync reads the clicks already in the sheet and skips them. Rows written before `click_id` existed are recognised by timestamp (to the second), session, action, calendar and event.
+- If the log tab is called **Log**, its columns are in the standard order and the sheet has no **Summary** tab, a Summary tab with formulas is added.
+- The app uses the scope `https://www.googleapis.com/auth/spreadsheets`, because `drive.file` only reaches files the app created itself. It reads the Google token that Clerk holds for the signed-in user.
+- Rows are appended with RAW input, so values are never interpreted as formulas.
 - **Syncs never overlap.** A row lock on the connection setting makes a second sync return "busy". Progress is committed after every batch, so a sync that is cut off resumes where it stopped.
 - Clicks younger than one minute are left for the next sync, so a test click won't show up in the Sheet immediately.
 - **Automatic sync:** `/api/cron/sync-sheets` runs once a day (`0 5 * * *`, 05:00 UTC, the Vercel Hobby limit). After upgrading to Vercel Pro, change the schedule in `vercel.json` to `*/15 * * * *`. **Sync now** works at any time.
-- If the connected person leaves or revokes access, the sync shows an error. Use **Create a new sheet**. All data is still in the database and is copied into the new sheet.
+- If the connected person leaves or revokes access, the sync shows an error. Someone else who can edit the sheet uses **Connect a different sheet** with the same link. All data is still in the database, and clicks already in the sheet are not added twice.
 
 ### Setup: Google OAuth client for extra scopes
 
@@ -169,9 +172,9 @@ Clerk's shared development Google credentials cannot request extra scopes. The C
 
 1. In Google Cloud Console, create an OAuth client (type "Web application"). Use user type **Internal** if solakon.de uses Google Workspace.
 2. In Clerk, go to **SSO connections → Google** and paste the client ID and client secret.
-3. In Clerk's Google settings, add the scope `https://www.googleapis.com/auth/drive.file`.
+3. In Clerk's Google settings, add the scope `https://www.googleapis.com/auth/spreadsheets`. In Google Cloud Console, enable the **Google Sheets API** for the project.
 4. Add the redirect URI shown in Clerk's Google settings to the Google OAuth client.
-5. Test: sign in, open Integrations, click **Allow Google Sheets access**, then **Create tracking sheet**.
+5. Test: sign in, open Integrations, click **Allow Google Sheets access**, then paste a sheet link and click **Connect sheet**.
 
 ## Deployment
 

@@ -3,10 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-export type EventTab = 'overview' | 'share' | 'details';
-
-export const EVENT_TABS: EventTab[] = ['overview', 'share', 'details'];
+import { EVENT_TABS, type EventTab } from './tabs';
 
 /**
  * Tab switcher that keeps the active tab in `?tab=` (other params, such as `range`, are kept).

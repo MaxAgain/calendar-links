@@ -23,7 +23,15 @@ type Lang = 'de' | 'en';
  * The real recipient page in an iframe, fed through postMessage: the page announces `atc-preview-ready`,
  * then receives the draft event, device and language on every (debounced) change.
  */
-export function PreviewPanel({ draft }: { draft: CalendarEvent | null }) {
+export function PreviewPanel({
+  draft,
+  title = 'Live preview',
+  description = 'Buttons in the preview work, so you can test the calendar entries. Preview clicks are not tracked.',
+}: {
+  draft: CalendarEvent | null;
+  title?: string;
+  description?: string;
+}) {
   const [platform, setPlatform] = useState('ios');
   const [lang, setLang] = useState<Lang>('de');
   const [ready, setReady] = useState(false);
@@ -50,8 +58,8 @@ export function PreviewPanel({ draft }: { draft: CalendarEvent | null }) {
   return (
     <Card className="lg:sticky lg:top-20">
       <CardHeader>
-        <CardTitle>Live preview</CardTitle>
-        <CardDescription>Buttons in the preview work, so you can test the calendar entries. Preview clicks are not tracked.</CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">

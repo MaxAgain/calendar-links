@@ -1,5 +1,8 @@
+import { PencilIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { GuardedLink } from '@/components/dashboard/navigation-guard';
+import { Button } from '@/components/ui/button';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CalendarEvent } from '@/lib/calendar';
 import { formatDateTime, formatEventDate } from '@/lib/format';
 
@@ -26,6 +29,14 @@ export function EventDetailsCard({ event }: { event: CalendarEvent }) {
     <Card>
       <CardHeader>
         <CardTitle>Event details</CardTitle>
+        <CardAction>
+          <Button variant="outline" size="sm" asChild>
+            <GuardedLink href={`/dashboard/events/${event.id}/edit`}>
+              <PencilIcon />
+              Edit event
+            </GuardedLink>
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <dl className="flex flex-col divide-y divide-border text-sm">
