@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 /*
  * Solakon GmbH color guidelines — the only colors available in the dashboard.
@@ -6,7 +10,10 @@
  */
 @theme {
   --color-*: initial;
+}
 
+/* `static` keeps every variable in the output, so CSS below can reference them directly. */
+@theme static {
   /* Solakon Yellow */
   --color-sk-yellow: oklch(86.2% 0.17 88.59);
   --color-sk-yellow-50: oklch(98.7% 0.022 98.866);
@@ -57,61 +64,191 @@
 
   /* Status colors — Tailwind scales, as allowed by the guidelines */
   --color-green-50: #F0FDF4;
+  --color-green-100: #DCFCE7;
   --color-green-200: #BBF7D0;
+  --color-green-300: #86EFAC;
+  --color-green-400: #4ADE80;
+  --color-green-500: #22C55E;
+  --color-green-600: #16A34A;
   --color-green-700: #15803D;
   --color-green-800: #166534;
+  --color-green-900: #14532D;
+  --color-green-950: #052E16;
+
   --color-amber-50: #FFFBEB;
+  --color-amber-100: #FEF3C7;
   --color-amber-200: #FDE68A;
+  --color-amber-300: #FCD34D;
+  --color-amber-400: #FBBF24;
+  --color-amber-500: #F59E0B;
+  --color-amber-600: #D97706;
+  --color-amber-700: #B45309;
   --color-amber-800: #92400E;
+  --color-amber-900: #78350F;
+  --color-amber-950: #451A03;
+
   --color-red-50: #FEF2F2;
+  --color-red-100: #FEE2E2;
   --color-red-200: #FECACA;
+  --color-red-300: #FCA5A5;
+  --color-red-400: #F87171;
+  --color-red-500: #EF4444;
+  --color-red-600: #DC2626;
   --color-red-700: #B91C1C;
   --color-red-800: #991B1B;
+  --color-red-900: #7F1D1D;
+  --color-red-950: #450A0A;
+}
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+/* Semantic tokens (shadcn names) — every value resolves to an sk-* or status color. */
+:root {
+  color-scheme: light;
+  --radius: 0.625rem;
+
+  --background: var(--color-sk-gray-50);
+  --foreground: var(--color-sk-gray-800);
+  --card: var(--color-sk-white);
+  --card-foreground: var(--color-sk-gray-800);
+  --popover: var(--color-sk-white);
+  --popover-foreground: var(--color-sk-gray-800);
+  /* Primary: Solakon yellow with dark text — never white on yellow. */
+  --primary: var(--color-sk-yellow-400);
+  --primary-foreground: var(--color-sk-gray-800);
+  --secondary: var(--color-sk-gray-100);
+  --secondary-foreground: var(--color-sk-gray-800);
+  --muted: var(--color-sk-gray-100);
+  --muted-foreground: var(--color-sk-gray-600);
+  --accent: var(--color-sk-gray-100);
+  --accent-foreground: var(--color-sk-gray-800);
+  --destructive: var(--color-red-700);
+  --border: var(--color-sk-gray-200);
+  /* Control borders need at least 3:1 against the surface. */
+  --input: var(--color-sk-gray-500);
+  --ring: var(--color-sk-blue-600);
+  /* Text links; yellow is never used as text on light surfaces. */
+  --link: var(--color-sk-blue-600);
+  --overlay: color-mix(in oklab, var(--color-sk-gray-950) 40%, transparent);
+  /* Status text/accent colors; badges and alerts use /10 tints of these. */
+  --success: var(--color-green-800);
+  --warning: var(--color-amber-800);
+  --info: var(--color-sk-blue-800);
+
+  --chart-1: var(--color-sk-blue-600);
+  --chart-2: var(--color-sk-yellow-400);
+  --chart-3: var(--color-sk-gray-800);
+  --chart-4: var(--color-sk-blue-300);
+  --chart-5: var(--color-sk-yellow-700);
+
+  --sidebar: var(--color-sk-gray-800);
+  --sidebar-foreground: var(--color-sk-gray-300);
+  --sidebar-primary: var(--color-sk-yellow-400);
+  --sidebar-primary-foreground: var(--color-sk-gray-800);
+  --sidebar-accent: var(--color-sk-gray-700);
+  --sidebar-accent-foreground: var(--color-sk-white);
+  --sidebar-border: var(--color-sk-gray-700);
+  --sidebar-ring: var(--color-sk-blue-400);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: var(--color-sk-gray-900);
+  --foreground: var(--color-sk-gray-50);
+  --card: var(--color-sk-gray-800);
+  --card-foreground: var(--color-sk-gray-50);
+  --popover: var(--color-sk-gray-800);
+  --popover-foreground: var(--color-sk-gray-50);
+  --primary: var(--color-sk-yellow-400);
+  --primary-foreground: var(--color-sk-gray-800);
+  --secondary: var(--color-sk-gray-700);
+  --secondary-foreground: var(--color-sk-gray-50);
+  --muted: var(--color-sk-gray-800);
+  --muted-foreground: var(--color-sk-gray-400);
+  --accent: var(--color-sk-gray-700);
+  --accent-foreground: var(--color-sk-gray-50);
+  --destructive: var(--color-red-300);
+  --border: var(--color-sk-gray-700);
+  --input: var(--color-sk-gray-500);
+  --ring: var(--color-sk-blue-400);
+  --link: var(--color-sk-blue-400);
+  --overlay: color-mix(in oklab, var(--color-sk-gray-950) 60%, transparent);
+  --success: var(--color-green-300);
+  --warning: var(--color-amber-300);
+  --info: var(--color-sk-blue-300);
+
+  --chart-1: var(--color-sk-blue-400);
+  --chart-2: var(--color-sk-yellow-400);
+  --chart-3: var(--color-sk-gray-200);
+  --chart-4: var(--color-sk-blue-200);
+  --chart-5: var(--color-sk-yellow-200);
+
+  --sidebar: var(--color-sk-gray-950);
+  --sidebar-foreground: var(--color-sk-gray-300);
+  --sidebar-primary: var(--color-sk-yellow-400);
+  --sidebar-primary-foreground: var(--color-sk-gray-800);
+  --sidebar-accent: var(--color-sk-gray-800);
+  --sidebar-accent-foreground: var(--color-sk-white);
+  --sidebar-border: var(--color-sk-gray-800);
+  --sidebar-ring: var(--color-sk-blue-400);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-link: var(--link);
+  --color-overlay: var(--overlay);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 @layer base {
+  * {
+    @apply border-border outline-ring;
+  }
   body {
-    @apply bg-sk-gray-50 text-sk-gray-800 font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased;
   }
-  :focus-visible {
-    @apply outline-3 outline-offset-2 outline-sk-blue-600;
-  }
-}
-
-@layer components {
-  .btn {
-    @apply inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-sk-gray-300 bg-sk-white px-3.5 py-2 text-sm font-semibold text-sk-gray-800 no-underline hover:bg-sk-gray-100 disabled:cursor-not-allowed disabled:opacity-55;
-  }
-  /* Primary actions: Solakon yellow with Solakon black text — never white on yellow. */
-  .btn-primary {
-    @apply border-sk-yellow-400 bg-sk-yellow-400 text-sk-gray-800 hover:border-sk-yellow-500 hover:bg-sk-yellow-500;
-  }
-  .btn-sm {
-    @apply min-h-8 px-2.5 py-1 text-xs;
-  }
-  .btn-link {
-    @apply border-transparent bg-transparent text-sk-blue-600 hover:bg-sk-blue-50 hover:text-sk-blue-800;
-  }
-  .field-label {
-    @apply mb-1 block text-sm font-semibold;
-  }
-  .input {
-    @apply block min-h-10 w-full rounded-lg border border-sk-gray-300 bg-sk-white px-2.5 py-2 text-sm text-sk-gray-800 focus:border-sk-blue-600 focus:outline-2 focus:outline-sk-blue-600 read-only:bg-sk-gray-100 aria-invalid:border-red-700;
-  }
-  .hint {
-    @apply mt-1 text-xs text-sk-gray-600;
-  }
-  .panel {
-    @apply rounded-xl border border-sk-gray-200 bg-sk-white p-5 shadow-sm;
-  }
-  .msg {
-    @apply mb-3 rounded-lg border px-3.5 py-2.5 text-sm;
-  }
-  .msg-error { @apply border-red-200 bg-red-50 text-red-800; }
-  .msg-warn { @apply border-amber-200 bg-amber-50 text-amber-800; }
-  .msg-ok { @apply border-green-200 bg-green-50 text-green-800; }
-  .msg-info { @apply border-sk-blue-200 bg-sk-blue-50 text-sk-blue-900; }
 }

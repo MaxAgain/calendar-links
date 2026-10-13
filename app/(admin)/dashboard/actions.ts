@@ -34,7 +34,7 @@ export async function saveEventAction(raw: EventInput, mode: 'new' | 'edit'): Pr
     const errors = validateEvent(input);
     if (errors.length) return { ok: false, error: errors.join(' ') };
     const saved = await saveEvent(input, { isNew: mode === 'new', by: user.email });
-    revalidatePath('/dashboard');
+    revalidatePath('/dashboard', 'layout');
     return { ok: true, id: saved.id };
   } catch (err) {
     return { ok: false, error: message(err) };
@@ -45,7 +45,7 @@ export async function setArchivedAction(id: string, archived: boolean): Promise<
   try {
     const user = await requireStaffAction();
     await setArchived(String(id), Boolean(archived), user.email);
-    revalidatePath('/dashboard');
+    revalidatePath('/dashboard', 'layout');
     return { ok: true };
   } catch (err) {
     return { ok: false, error: message(err) };

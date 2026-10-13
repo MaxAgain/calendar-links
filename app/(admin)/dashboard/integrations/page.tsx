@@ -1,4 +1,5 @@
-import { SheetPanel } from '@/components/admin/SheetPanel';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { SheetsCard } from '@/components/dashboard/sheets-card';
 import { requireStaffPage } from '@/lib/auth';
 import { getSetting } from '@/lib/events';
 import { formatDateTime } from '@/lib/format';
@@ -11,11 +12,11 @@ export default async function IntegrationsPage() {
 
   return (
     <>
-      <h1 className="mb-1 text-2xl font-bold">Google Sheet</h1>
-      <p className="mb-5 max-w-3xl text-sm text-sk-gray-600">
-        All clicks are stored in the database. The Google Sheet is a copy for analysis and sharing — anonymous data only (no emails, no IP addresses).
-      </p>
-      <SheetPanel
+      <PageHeader
+        title="Integrations"
+        description="All clicks are stored in the database. The Google Sheet is a copy for analysis and sharing, with anonymous data only (no emails, no IP addresses)."
+      />
+      <SheetsCard
         config={
           config
             ? {
@@ -30,7 +31,7 @@ export default async function IntegrationsPage() {
         }
         access={access}
         driveScope={DRIVE_FILE_SCOPE}
-        syncSchedule={process.env.SHEET_SYNC_SCHEDULE_LABEL || 'Once a day (every 15 minutes on Vercel Pro) — use “Sync now” any time'}
+        syncSchedule={process.env.SHEET_SYNC_SCHEDULE_LABEL || 'Once a day (every 15 minutes on Vercel Pro). Use “Sync now” at any time.'}
       />
     </>
   );

@@ -11,7 +11,7 @@ export function TrackNotFound() {
   const pathname = usePathname();
   useEffect(() => {
     const p = detectPlatform(navigator.userAgent, { maxTouchPoints: navigator.maxTouchPoints || 0 });
-    const id = pathname.split('/')[2] || new URLSearchParams(window.location.search).get('id') || '';
+    const id = pathname.split('/')[2] || '';
     createTracker('/api/track', {
       event_id: id.toLowerCase().slice(0, 64),
       os: p.os,

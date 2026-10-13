@@ -15,7 +15,7 @@ export const viewport: Viewport = {
 // in-app browsers, (admin) uses Tailwind. Language is set per page on a wrapper element.
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="de">
+    <html lang="de" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

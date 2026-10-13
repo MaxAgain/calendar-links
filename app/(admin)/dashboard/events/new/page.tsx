@@ -1,4 +1,4 @@
-import { EventEditor } from '@/components/admin/EventEditor';
+import { EventEditor } from '@/components/dashboard/event-editor/event-editor';
 import { requireStaffPage } from '@/lib/auth';
 import { ID_PATTERN } from '@/lib/calendar';
 import { getEvent, listEvents } from '@/lib/events';

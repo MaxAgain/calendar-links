@@ -1,6 +1,6 @@
 // Event storage (Postgres) with a Runtime Cache in front of the public read path.
 import { getCache } from '@vercel/functions';
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { buildEvent, type CalendarEvent, type EventInput } from './calendar';
 import { getDb } from './db';
 import { clicks, events, settings, type EventRow } from './db/schema';
@@ -101,11 +101,6 @@ export async function listEvents(): Promise<CalendarEvent[]> {
   return rows.map(rowToEvent);
 }
 
-export async function eventIdExists(id: string): Promise<boolean> {
-  const [row] = await getDb().select({ id: events.id }).from(events).where(eq(events.id, id)).limit(1);
-  return Boolean(row);
-}
-
 /** Creates or updates an event. The row lock serializes concurrent edits of the same event. */
 export async function saveEvent(input: EventInput, { isNew, by }: { isNew: boolean; by: string }): Promise<CalendarEvent> {
   const saved = await getDb().transaction(async (tx) => {
@@ -139,47 +134,10 @@ export async function setArchived(id: string, archived: boolean, by: string): Pr
   await expireEventCache(id);
 }
 
-// ---------------------------------------------------------------------------- tracking + stats
+// ---------------------------------------------------------------------------- tracking
 
 export async function insertClick(record: typeof clicks.$inferInsert): Promise<void> {
   await getDb().insert(clicks).values(record);
-}
-
-export interface EventStats {
-  views: number;
-  adds: number;
-  calendars: Record<string, number>;
-}
-
-export interface StatsSummary {
-  byEvent: Record<string, EventStats>;
-  totals: { views: number; adds: number; notFound: number };
-}
-
-export async function getStats(): Promise<StatsSummary> {
-  const rows = await getDb()
-    .select({ eventId: clicks.eventId, action: clicks.action, calendar: clicks.calendar, count: sql<number>`count(*)::int` })
-    .from(clicks)
-    .groupBy(clicks.eventId, clicks.action, clicks.calendar);
-
-  const summary: StatsSummary = { byEvent: {}, totals: { views: 0, adds: 0, notFound: 0 } };
-  for (const row of rows) {
-    if (row.action === 'not_found') {
-      summary.totals.notFound += row.count;
-      continue;
-    }
-    if (!row.eventId) continue;
-    const ev = (summary.byEvent[row.eventId] ??= { views: 0, adds: 0, calendars: {} });
-    if (row.action === 'view') {
-      ev.views += row.count;
-      summary.totals.views += row.count;
-    } else if (row.action === 'add') {
-      ev.adds += row.count;
-      summary.totals.adds += row.count;
-      if (row.calendar) ev.calendars[row.calendar] = (ev.calendars[row.calendar] ?? 0) + row.count;
-    }
-  }
-  return summary;
 }
 
 // ---------------------------------------------------------------------------- settings

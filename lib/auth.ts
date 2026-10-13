@@ -8,6 +8,7 @@ export interface StaffUser {
   id: string;
   email: string;
   name: string;
+  imageUrl: string;
 }
 
 export function allowedDomains(): string[] {
@@ -33,7 +34,7 @@ async function lookupStaffUser(): Promise<Lookup> {
   if (!user || primary?.verification?.status !== 'verified' || !isAllowedEmail(email)) {
     return { user: null, reason: 'not_allowed' };
   }
-  return { user: { id: user.id, email, name: user.fullName || email }, reason: null };
+  return { user: { id: user.id, email, name: user.fullName || email, imageUrl: user.imageUrl }, reason: null };
 }
 
 /** For pages: redirects to sign-in or to the "no access" page. */

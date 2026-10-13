@@ -2,23 +2,30 @@
 
 One link per event for Klaviyo emails. The link opens a page that detects the recipient's device and offers the right calendar button (Apple, Google, Outlook, Yahoo, Microsoft 365 or a plain `.ics` file). Staff create and manage events in a dashboard. Each page view and calendar click is tracked anonymously, and the data is copied into a Google Sheet.
 
-Stack: Next.js 16.4 (App Router), React 19.3, TypeScript, Tailwind CSS v4 (dashboard only), Clerk (Google sign-in, dashboard only), Drizzle ORM with `pg` on Neon Postgres, Vercel (functions in `fra1`), Vitest.
+Stack: Next.js 16.4 (App Router), React 19.3, TypeScript, Tailwind CSS v4 with shadcn/ui (style `radix-nova`, dashboard only), Clerk (Google sign-in, dashboard only), Drizzle ORM with `pg` on Neon Postgres, Recharts, Vercel (functions in `fra1`), Vitest.
 
 ## How it works
 
 - **Recipient page** `/e/<id>`: shows the event and the calendar buttons. The main button depends on the device. Apple Calendar and Outlook desktop use the `.ics` file.
 - **Calendar file** `/e/<id>/calendar.ics`: serves the iCalendar file.
-- **Legacy links** `/e?id=<id>` redirect to `/e/<id>`.
-- **Dashboard** `/dashboard`: create, edit, duplicate, archive and share events, and manage the Google Sheet integration.
+- **Dashboard** (staff only, solakon.de Google accounts):
+  - `/dashboard`: overview with KPIs, charts and upcoming events.
+  - `/dashboard/events`: event list with status tabs (All, Upcoming, Past, Archived), search and sorting.
+  - `/dashboard/events/<id>`: event detail with the tabs **Overview** (analytics), **Share** (link, UTM tag, Klaviyo steps) and **Details** (all fields). The tab is kept in `?tab=`.
+  - `/dashboard/events/new`: editor with live preview. `?from=<id>` duplicates an existing event.
+  - `/dashboard/events/<id>/edit`: editor for an existing event.
+  - `/dashboard/integrations`: Google Sheets connection.
 - **Tracking**: each view and click is stored in Postgres. A cron job copies new rows into the Google Sheet.
+
+**Analytics note:** the dashboard analytics (charts, KPIs and per-event breakdowns) currently show generated sample data from `lib/analytics/mock.ts`, labelled "Sample data" in the UI. Real data is stored in the `clicks` table. The switch point is `lib/analytics/index.ts`: export the two analytics functions from a database implementation instead of `./mock` and set `ANALYTICS_SAMPLE = false`.
 
 ## Daily use
 
 1. Sign in at the dashboard with your solakon.de Google account.
 2. Click **New event**, or duplicate an existing event for a similar one.
 3. Fill in the details. The live preview shows the recipient page.
-4. Click **Save**.
-5. Open the **Share** page and copy the link.
+4. Click **Publish**. The event opens on its **Share** tab.
+5. Copy the link.
 6. Paste the link into a **Button** block in the Klaviyo email (e.g. "Zum Kalender hinzufügen"). Klaviyo's UTM parameters are fine, but never put profile merge tags (email, name, profile ID) into UTM values; UTM values containing `@` are discarded.
 7. Send yourself a test email and click the button on your phone.
 
@@ -32,19 +39,28 @@ Rules to know:
 
 ```
 app/
-  (public)/        recipient pages, plain CSS (old in-app browsers)
-    e/             /e/[id], /e/[id]/calendar.ics, legacy /e?id=
-    preview/       preview page (framed by the dashboard)
-  (admin)/         dashboard, Tailwind with the Solakon theme
-    dashboard/     events, integrations, server actions
+  (public)/        recipient pages, plain CSS (landing.css)
+    e/             /e/[id], /e/[id]/calendar.ics, not-found tracking
+    preview/       preview page (framed by the dashboard editor)
+  (admin)/         dashboard, Tailwind + shadcn/ui
+    globals.css    Solakon theme tokens (light and dark)
+    dashboard/     overview, events (list, new, [id], [id]/edit), integrations, server actions
     sign-in/, sign-up/, no-access/
   api/
     track/         anonymous tracking beacon
     cron/sync-sheets/   scheduled Sheet sync
 components/
+  ui/              shadcn/ui sources, managed with the shadcn CLI
+  dashboard/       dashboard feature components
+    analytics/     KPI cards, charts, bar lists, range toggle
+    event-editor/  editor form, date picker, time zone combobox, live preview
+    event-detail/  detail tabs, share panel, details card
+    theme/         theme provider, script and toggle
+    (shell)        app sidebar, site header, nav user, navigation guard, events table, sheets card
   landing/         recipient page UI and tracker
-  admin/           dashboard UI (SheetPanel, EventEditor, ...)
+hooks/             shared React hooks (use-mobile)
 lib/
+  analytics/       analytics types, sample data generator, switch point (index.ts)
   auth.ts          staff access check (Clerk + email domain)
   calendar.ts      .ics builder and calendar links
   platform.ts      device detection and recommended calendar
@@ -54,17 +70,27 @@ lib/
   sheets.ts        Google Sheets and Drive API calls
   sheet-layout.ts  Sheet tabs, columns, formulas
   site.ts          public settings, site URL, UID domain
+  i18n.ts          recipient page strings (de, en)
+  format.ts        date and time formatting for the dashboard
+  utils.ts         cn() class helper
   db/              Drizzle client and schema
 proxy.ts           Clerk, dashboard routes only
 drizzle/           migrations (generated, committed)
 tests/             Vitest tests
 ```
 
+## Theming
+
+- **Solakon palette only.** The tokens live in `app/(admin)/globals.css`. `@theme static` defines the `sk-*` scales (yellow, blue, gray, black, white) plus the status shades (green, amber, red, and blue for info). The Tailwind default palette is removed (`--color-*: initial`), so other colours render as nothing. The shadcn semantic tokens (`background`, `primary`, `card`, `border`, `chart-1` ...) are mapped to `sk-*` for light and dark mode.
+- **Light, dark and system** are selectable with the toggle in the header and the user menu. The choice is stored in localStorage under `sk-theme` (no cookie) and applied by an inline script before first paint, so there is no flash. The theme applies to dashboard routes only.
+- **Adding shadcn components:** run `npx shadcn@latest add <name>`. Never run `shadcn init`, because it overwrites the theme CSS. After adding, replace any non-token colours in the new file. `tests/brand-colors.test.ts` fails otherwise. Overlays use `bg-overlay` instead of `bg-black/*`, and links use `text-link` instead of `text-primary` (yellow text has too little contrast).
+
 ## Privacy
 
 - **Clerk runs only on admin routes.** `proxy.ts` matches `/`, `/dashboard/*`, `/sign-in/*`, `/sign-up/*`, `/no-access` and Clerk's proxy path `/__clerk/*`. Recipient pages, `/api/track` and the cron job get no Clerk scripts, cookies or redirects.
 - **Tracking is anonymous.** No cookies or localStorage, no IP addresses, no raw user agent. Only coarse values are stored (OS, browser, device type, in-app browser, language, time zone, UTM parameters, app version). The page-session ID exists only in memory during the visit.
 - **Actions tracked:** `view`, `add` (calendar button clicked) and `not_found` (broken or mistyped link).
+- **Dashboard storage** stays on staff devices and on dashboard routes only: the theme choice (localStorage `sk-theme`) and the sidebar state cookie, which is scoped to `/dashboard`. Recipient pages set and read neither.
 - **No consent banner is needed** under TDDDG §25 for this setup, because nothing is stored on the recipient's device. As a result, returning visitors can't be counted.
 - Name the processors in the privacy policy: Vercel (hosting), Neon (database), Google (Sheets/Drive) and Clerk (staff sign-in only).
 
@@ -129,7 +155,7 @@ Commit the generated `drizzle/` files. Do not edit generated migrations by hand.
 
 Postgres is the source of truth. The Sheet is a copy that can be recreated at any time.
 
-- **Connect** on the Integrations page (`/dashboard/integrations`) creates "Solakon Calendar Links – Tracking" in the connecting user's Google Drive. It has a **Log** tab (one row per click) and a **Summary** tab.
+- **Create tracking sheet** on the Integrations page (`/dashboard/integrations`) creates "Solakon Calendar Links – Tracking" in the connecting user's Google Drive. It has a **Log** tab (one row per click) and a **Summary** tab.
 - The app uses only the scope `https://www.googleapis.com/auth/drive.file`, so it can see only files it creates. It reads the Google token that Clerk holds for the signed-in user.
 - Rows are appended with RAW input, so values are never interpreted as formulas. The Sheet uses locale `en_GB` and time zone `Europe/Berlin`.
 - **Syncs never overlap.** A row lock on the connection setting makes a second sync return "busy". Progress is committed after every batch, so a sync that is cut off resumes where it stopped.
@@ -147,34 +173,32 @@ Clerk's shared development Google credentials cannot request extra scopes. The C
 4. Add the redirect URI shown in Clerk's Google settings to the Google OAuth client.
 5. Test: sign in, open Integrations, click **Allow Google Sheets access**, then **Create tracking sheet**.
 
-## Deployment and production checklist
+## Deployment
 
-The app is hosted on Vercel (project `calendar-links`). Functions run in `fra1` (see `vercel.json`). Until the Vercel GitHub app is connected to the repository, deploy from the CLI:
+The app is hosted on Vercel (project `calendar-links`). Functions run in `fra1` and the Sheet sync cron job is defined in `vercel.json`: `0 5 * * *` (daily) on the Hobby plan, `*/15 * * * *` (every 15 minutes) on Pro. Deploy from the CLI:
 
 ```bash
 npx vercel@latest deploy           # preview
 npx vercel@latest deploy --prod    # production
 ```
 
-Open items before go-live:
+Production requirements:
 
-- [ ] **Upgrade to Vercel Pro.** The Hobby plan is for non-commercial use only. Pro also allows the 15-minute Sheet sync (see above).
-- [ ] **Add a custom domain**, e.g. `cal.solakon.de`. Links in emails need a stable domain. Clerk production keys do not work on `*.vercel.app`.
-- [ ] **Create a Clerk production instance** and set its keys (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`) in Vercel.
-- [ ] Set `NEXT_PUBLIC_SITE_URL` to the production domain.
-- [ ] Set up the Google OAuth client (see above).
-- [ ] Run `npm run db:migrate` against the production database.
-- [ ] Connect the Vercel GitHub app to the repository so pushes deploy automatically.
-- [ ] Send a test email through Klaviyo, click the button on iPhone, Android and a desktop, and check that the event appears in the Sheet.
-- [ ] Turn off the v1 GitHub Pages site once no live email links point to it.
+- The Hobby plan is for non-commercial use only. Pro also allows the 15-minute Sheet sync.
+- A custom domain (e.g. `cal.solakon.de`) gives links in emails a stable address. Clerk production keys do not work on `*.vercel.app`.
+- A Clerk production instance, with its keys (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`) set in Vercel.
+- `NEXT_PUBLIC_SITE_URL` set to the production domain.
+- The Google OAuth client set up as described above.
+- Migrations applied to the production database with `npm run db:migrate`.
 
 ## Contributing rules
 
-- **Colors:** use only the Solakon palette (`sk-yellow`, `sk-blue`, `sk-gray`). Primary buttons are yellow with dark text.
+- **Colors:** use only the Solakon palette (`sk-yellow`, `sk-blue`, `sk-gray`), through the semantic tokens where possible. Primary buttons are yellow with dark text. `tests/brand-colors.test.ts` enforces this.
 - **Status colors:** Tailwind green, amber and red.
-- **Icons:** monochrome. No third-party logos.
+- **Icons:** monochrome lucide icons. No third-party logos.
 - **Language:** recipient copy in German always uses the formal "Sie", never "du". The dashboard UI is in English.
-- **Route groups:** `(public)` uses plain CSS, because old in-app browsers do not handle modern CSS well. `(admin)` uses Tailwind.
+- **Route groups:** `(public)` uses plain CSS (`landing.css`), because old in-app browsers do not handle modern CSS well. `(admin)` uses Tailwind and shadcn/ui.
 - **Clerk** must stay limited to admin routes (see `proxy.ts`). Do not add Clerk to recipient pages.
+- **Links to recipient pages** (`/e/...`) from the dashboard are plain `<a target="_blank">` elements or iframes, never `next/link`, so the admin theme and scripts never reach public pages.
 - **UIDs:** do not change the UID domain (`cal.solakon.de`) after the first event is published.
 - **Before opening a PR:** `npm run typecheck`, `npm run lint` and `npm test` must pass. CI runs the same checks.
